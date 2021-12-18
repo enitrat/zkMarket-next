@@ -11,7 +11,8 @@ function MyApp({Component, pageProps}: AppProps) {
     return (
         <>
             <ChakraProvider theme={theme}>
-                <Navbar/>
+                <Navbar zkSyncConnection={zkSyncConnection}
+                        setZkSyncConnection={setZkSyncConnection}/>
                 <Component {...pageProps} zkSyncConnection={zkSyncConnection}
                            setZkSyncConnection={setZkSyncConnection}/>
             </ChakraProvider>
