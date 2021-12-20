@@ -109,7 +109,6 @@ export const fetchNFTInfo = async (tokenId: number) => {
             nft: nft,
             metadata: metadata
         }
-        console.log(fetchedNFT);
         return fetchedNFT;
     } catch (error) {
         console.log(error);
@@ -118,6 +117,8 @@ export const fetchNFTInfo = async (tokenId: number) => {
 
 export const prepareBuyOrder = async (nft: NFT, price: string, syncWallet: Wallet) => {
     const {syncProvider} = await fetchDefaultWallet();
+    console.log("ether price : " + price)
+    console.log("wei price : " + ethers.utils.parseEther(price).toString());
     console.log("prepareBuy")
     let payload = {
         tokenBuy: nft.id,
@@ -125,7 +126,7 @@ export const prepareBuyOrder = async (nft: NFT, price: string, syncWallet: Walle
         amount: ethers.utils.parseEther(price).toString(),
         ratio: utils.tokenRatio({
             [nft.id]: 1,
-            ETH: ethers.utils.parseEther(price).toString()
+            ETH: price
         })
     };
     console.log(payload);
@@ -156,7 +157,10 @@ export const prepareSellOrder = async (order: Order, syncWallet: Wallet) => {
         orders: [order, orderB],
         feeToken: 'ETH'
     });
+    console.log("swap");
     console.log(swap);
+    const receipt = await swap.awaitReceipt();
+    console.log(receipt);
 }
 
 

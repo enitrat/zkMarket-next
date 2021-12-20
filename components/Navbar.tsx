@@ -14,9 +14,13 @@ import {ethers} from "ethers";
 import {useRouter} from 'next/router'
 import {ZkSyncConnection} from "../types/interfaces";
 import * as zksync from "zksync";
+
 const valid_networks = ["0x1", "0x3", "0x4"];
 
-export default function Navbar({zkSyncConnection, setZkSyncConnection} : any) {
+export default function Navbar({
+                                   zkSyncConnection,
+                                   setZkSyncConnection
+                               }: { zkSyncConnection: ZkSyncConnection | undefined, setZkSyncConnection: any }) {
 
     const [currentAccount, setCurrentAccount] = useState<string | undefined>();
     const [validChain, setValidChain] = useState<boolean>(true);
@@ -49,7 +53,9 @@ export default function Navbar({zkSyncConnection, setZkSyncConnection} : any) {
 
                 const chainRequest = await ethereum.request({method: 'eth_chainId'});
                 ethereum.on('chainChanged', handleChainChanged);
-                if(!valid_networks.includes(chainRequest)){setValidChain(false)}
+                if (!valid_networks.includes(chainRequest)) {
+                    setValidChain(false)
+                }
             } catch (error) {
                 console.log(error);
             }
@@ -158,8 +164,8 @@ export default function Navbar({zkSyncConnection, setZkSyncConnection} : any) {
                     paddingLeft={"10px"}
                 >
 
-                    <Flex
-                        justifyContent={"space-between"}
+                    <Grid
+                        gridTemplateColumns={"1fr 1fr 1fr"}
                         width={"100%"}
                         height={"100%"}
                         columnGap={"5px"}
@@ -203,58 +209,70 @@ export default function Navbar({zkSyncConnection, setZkSyncConnection} : any) {
                                 justifyContent={"flex-end"}
                                 width={"100%"}
                             >
+                                <Link href="/" passHref>
 
-                                <Button
-                                    as="a"
-                                    variant="ghost"
-                                    aria-label="Home"
-                                    w="100%"
-                                >
-                                    <Link href="/">
+                                    <Button
+                                        as="a"
+                                        variant="ghost"
+                                        aria-label="Home"
+                                        w="100%"
+                                    >
                                         Home
-                                    </Link>
+                                    </Button>
 
-                                </Button>
+                                </Link>
+                                <Link
+                                    href="/account" passHref>
+                                    <Button
+                                        as="a"
+                                        variant="ghost"
+                                        aria-label="Account"
+                                        w="100%"
+                                    >
 
-
-                                <Button
-                                    as="a"
-                                    variant="ghost"
-                                    aria-label="About"
-                                    w="100%"
-                                >
-
-                                    <Link href="/account">
                                         My collection
-                                    </Link>
 
-                                </Button>
-
-
-                                <Button
-                                    as="a"
-                                    variant="ghost"
-                                    aria-label="Contact"
-                                    w="100%"
-                                >
-                                    <Link href="/create">
+                                    </Button>
+                                </Link>
+                                <Link href="/create" passHref>
+                                    <Button
+                                        as="a"
+                                        variant="ghost"
+                                        aria-label="Create"
+                                        w="100%"
+                                    >
                                         Create NFT
-                                    </Link>
+                                    </Button>
 
-                                </Button>
-                                <Button
-                                    bg='transparent'
-                                    width={"125px"}
-                                    height='60px'
-                                    borderRadius='35px'
-                                    border='1px'
-                                    borderColor='#FFFF'
-                                    _hover={{bgGradient: 'linear(to-r, #F0C3EC, #7F6AFF)'}}
-                                    onClick={connectWalletAction}
+                                </Link>
+                                {!zkSyncConnection &&
+                                <>
+                                    <Button
+                                        as="a"
+                                        variant="ghost"
+                                        aria-label="Connect"
+                                        w="100%"
+                                        cursor={"pointer"}
+                                        onClick={connectWalletAction}
 
-                                >
-                                    Connect
-                                </Button>
+                                    >
+                                        Connect
+                                    </Button>
+                                </>}
+                                {zkSyncConnection &&
+                                <>
+                                    <Button
+                                        as="a"
+                                        variant="ghost"
+                                        aria-label="Contact"
+                                        w="100%"
+                                        onClick={connectWalletAction}
+
+                                    >
+                                        {zkSyncConnection.syncWallet.address().slice(0, 6)}
+                                    </Button>
+                                </>
+                                }
                             </Flex>
 
                             {/* Mobile */}
@@ -270,11 +288,12 @@ export default function Navbar({zkSyncConnection, setZkSyncConnection} : any) {
                             />
                         </List>
 
-                    </Flex>
+                    </Grid>
                 </Box>
             </Box>
 
-            {/* Mobile Content */}
+            {/* Mobile Content */
+            }
             <Flex
                 w='100vw'
                 display={display}

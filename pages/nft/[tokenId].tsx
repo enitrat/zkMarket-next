@@ -11,7 +11,7 @@ import {
     prepareBuyOrder,
     prepareSellOrder
 } from "../../utils/api";
-import {Box, Flex, Image, Input, Text, Button, Heading} from "@chakra-ui/react";
+import {Box, Flex, Image, Input, Text, Button, Heading, Link, Grid} from "@chakra-ui/react";
 import {Table, Thead, Tbody, Tr, Th, Td, chakra} from '@chakra-ui/react'
 import {TriangleDownIcon, TriangleUpIcon} from '@chakra-ui/icons'
 // @ts-ignore
@@ -20,20 +20,27 @@ import {BigNumber, ethers} from "ethers";
 import axios, {AxiosRequestConfig} from "axios";
 import {utils} from "zksync";
 
+interface storedOrder extends Order {
+    _id: string
+}
+
 const FALLBACK_IMAGE =
     "https://www.kindacode.com/wp-content/uploads/2021/08/oops.png";
 
-const NftView = ({zkSyncConnection, setZkSyncConnection} : {zkSyncConnection : ZkSyncConnection|undefined, setZkSyncConnection:any}) => {
+const NftView = ({
+                     zkSyncConnection,
+                     setZkSyncConnection
+                 }: { zkSyncConnection: ZkSyncConnection | undefined, setZkSyncConnection: any }) => {
 
     const router = useRouter();
     let tokenId = router.query.tokenId as string;
     const [nftInfo, setNftInfo] = useState<FetchedNFT>();
     const [error, setError] = useState<boolean>(false);
     const [invalidInput, setInvalidInput] = useState<boolean>()
-    const [orders, setOrders] = useState<Array<BuyOrder>>([]);
-    const syncWallet=zkSyncConnection?.syncWallet;
-    const syncProvider=zkSyncConnection?.syncProvider;
-    console.log(syncWallet);
+    const [orders, setOrders] = useState<Array<storedOrder>>([]);
+    const syncWallet = zkSyncConnection?.syncWallet;
+    const syncProvider = zkSyncConnection?.syncProvider;
+    const [owner, setOwner] = useState<boolean>(false);
 
     useEffect(() => {
 
@@ -41,7 +48,7 @@ const NftView = ({zkSyncConnection, setZkSyncConnection} : {zkSyncConnection : Z
             let network_name = await chainConnection();
             if (network_name) {
                 const response = await fetchNFTInfo(parseInt(tokenId)) as any;
-                const orders = await fetchNFTOrders(tokenId) as Array<Order>;
+                const orders = await fetchNFTOrders(tokenId) as Array<storedOrder>;
                 setNftInfo(response);
                 setOrders(orders);
             } else {
@@ -49,18 +56,57 @@ const NftView = ({zkSyncConnection, setZkSyncConnection} : {zkSyncConnection : Z
             }
         }
         if (tokenId !== undefined) {
-            console.log("token Id" + tokenId);
             search();
         }
     }, [tokenId])
+
+    useEffect(() => {
+        if (orders.length !== 0 && zkSyncConnection) {
+            console.log(orders);
+            orders.map(async (order) => {
+                const submitter = order.recipient;
+                const orderNonce = order.nonce;
+                const submitterState = await zkSyncConnection?.syncProvider.getState(submitter);
+                const submitterNonce = submitterState?.committed.nonce;
+                if (submitterNonce !== orderNonce) {
+                    const payload = {
+                        _id: order._id
+                    }
+                    await axios.delete('/api/orders',
+                        {
+                            params: payload
+                        })
+                    const newOrders = await fetchNFTOrders(tokenId);
+                    setOrders(newOrders);
+                }
+            })
+        }
+    }, [zkSyncConnection, orders])
+
+    useEffect(() => {
+
+        const checkOwner = async() => {
+            const accountState = await zkSyncConnection?.syncWallet.getAccountState();
+            console.log(accountState);
+            Object.values(accountState!.committed.nfts).forEach( (nft : NFT) =>{
+                if(nft.id===parseInt(tokenId)){
+                    setOwner(true);
+                }
+            } )
+
+        }
+        if(zkSyncConnection) {
+            checkOwner();
+        }
+    },[zkSyncConnection])
+
+
 
     const handleSubmit = async (event: any) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         const content = data.get("ethPrice") as string
-        console.log(content);
         if (isNaN(parseInt(content))) {
-            console.log("not a number")
             setInvalidInput(true);
         } else {
             const payload = await prepareBuyOrder(nftInfo!.nft, content, syncWallet!);
@@ -69,111 +115,133 @@ const NftView = ({zkSyncConnection, setZkSyncConnection} : {zkSyncConnection : Z
                     body: payload
                 }
             );
-            console.log(response);
             if (response.data.result === "success") {
                 console.log("success")
+                const orders = await fetchNFTOrders(tokenId);
+                setOrders(orders);
             } else {
                 console.log("failure")
             }
         }
     }
 
-    const acceptOffer = async (order:Order) => {
-        console.log(order);
-       const payload = await prepareSellOrder(order, syncWallet!);
+    const acceptOffer = async (order: Order) => {
+        const payload = await prepareSellOrder(order, syncWallet!);
     }
 
     return (
         <>
             {nftInfo &&
-            <Box width={"95%"}>
+            <Box width={"90%"}
+                 marginX={"auto"}
+            >
                 <Flex
+                    justifyContent={"left"}
+                >
+                    <Heading
+                    >
+                        {nftInfo.metadata.name}
+                    </Heading>
+                </Flex>
+                <Grid
+                    gridTemplateColumns={"1fr 1fr 1fr"}
+                    columnGap={"100px"}
                     justifyContent={"center"}
+                    marginTop={"10"}
                 >
                     <Flex
-                        justifyContent={"center"}
-                        flexDir={"row"}
-                        width={"inherit"}
-                    >
-
-                        <Flex
-                            alignItems="center"
-                            justifyContent={"center"}
-                            flexDir={"column"}
-                            marginX={"200px"}
-
-                        >
-                            <Text
-                            >
-                                Attributes
-                            </Text>
-                            {<DataTable nftInfo={nftInfo}/>}
+                        flexDir={"column"} padding={"10px"}>
+                        <Flex marginBottom={"10px"}>
+                            <p>{nftInfo.metadata.description}</p>
                         </Flex>
-                        <Box>
-                            {nftInfo.metadata.image ?
-                                <Image
-                                    maxHeight={"300px"}
-                                    objectFit={"contain"}
-                                    borderRadius={"15px"}
-                                    src={nftInfo.metadata.image} onError={(e: any) => {
-                                    e.target.onerror = null;
-                                    e.target.src = FALLBACK_IMAGE;
-                                }}/> : <span>NO IMAGE</span>
-                            }
-
-                        </Box>
-
+                        <p>Created by : <Link
+                            href={`/address/${nftInfo.nft.creatorAddress}`}>{nftInfo.nft.creatorAddress.slice(0, 6)}</Link>
+                        </p>
+                        ID : {nftInfo.nft.id}
                     </Flex>
-                </Flex>
-                <Flex
-                    width={"100%"}
-                    marginTop={"100px"}
-                    justifyContent={"center"}>
                     <Flex
                         flexDir={"column"}
-                        justifyContent={"center"}
-                        alignItems={"center"}>
+                    >
                         <Text
                         >
-                            NFT Info
+                            Attributes
                         </Text>
-                        <Flex
-                            flexDir={"column"}
-                        >
-                            <p>ID : {nftInfo.nft.id}</p>
-                            <p>Address : {nftInfo.nft.address}</p>
-                            <p>Content Hash : {nftInfo.nft.contentHash}</p>
-                            <p>Creator : {nftInfo.nft.creatorAddress}</p>
-                        </Flex>
+                        {<DataTable nftInfo={nftInfo}/>}
                     </Flex>
+                    <Box>
+                        {nftInfo.metadata.image ?
+                            <Image
+                                maxHeight={"300px"}
+                                objectFit={"contain"}
+                                borderRadius={"15px"}
+                                src={nftInfo.metadata.image} onError={(e: any) => {
+                                e.target.onerror = null;
+                                e.target.src = FALLBACK_IMAGE;
+                            }}/> : <span>NO IMAGE</span>
+                        }
 
-                </Flex>
+                    </Box>
+
+                </Grid>
                 <Flex>
                     <Flex
+                        justifyContent={"center"}
+                        alignItems={"center"}
+                        height={"100%"}
+                        width={"100%"}
                         flexDir={"column"}
+                        marginTop={"10px"}
                     >
-                    <Heading>Offers : </Heading>
+                        <div>
+                            <Heading>Offers : </Heading>
+                        </div>
                         {orders.length !== 0 &&
                         orders.map((order) => {
                                 return (
                                     <>
                                         <Button
-                                            onClick = {() => acceptOffer(order) as any}>
-                                        {order.ratio[0]*10**-18}
+                                            padding={"30px"}
+                                            disabled={zkSyncConnection === undefined || !owner}
+                                            onClick={() => acceptOffer(order) as any}>
+                                            {ethers.utils.formatEther(order.ratio[0])}ETH <br/>
+                                            from {order.recipient}
                                         </Button>
+
                                     </>
                                 )
                             }
                         )
                         }
+                        {orders.length === 0 &&
+                        <Text marginTop={"30px"}>
+                            There are no offers for this NFT
+                        </Text>
+                        }
                     </Flex>
 
 
-                    <form onSubmit={handleSubmit}>
-                        <Input type={"text"} name={"ethPrice"}/>
-                    </form>
                 </Flex>
+                <Flex justifyContent={"center"} flexDir={"column"} marginTop="10px" alignItems={"flex-end"}>
 
+                    {zkSyncConnection && !owner &&
+                    <>
+                        Make an offer in ETH
+                        <form onSubmit={handleSubmit}>
+                            <Flex flexDir="column" alignItems={"flex-end"}>
+                                <Input maxWidth={"150px"}
+                                       type={"text"}
+                                       name={"ethPrice"}/>
+                                <Button type={"submit"}>Submit</Button>
+                            </Flex>
+                        </form>
+                    </>
+                    }
+                    {!zkSyncConnection &&
+                    <>
+                        Connect to make an offer
+                    </>
+                    }
+                </Flex>
             </Box>
             }
 

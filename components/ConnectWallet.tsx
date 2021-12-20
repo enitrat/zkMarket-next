@@ -6,6 +6,7 @@ import {ZkSyncConnection} from "../types/interfaces";
 
 const valid_networks = ["0x1", "0x3", "0x4"];
 
+
 export default function ConnectWallet({zkSyncConnection, setZkSyncConnection}: any) {
     const [currentAccount, setCurrentAccount] = useState<string | undefined>();
     const [validChain, setValidChain] = useState<boolean>(true);

@@ -49,7 +49,7 @@ export default function Address() {
                         bgGradient='linear(to-r, #F0C3EC, #7F6AFF)'
                         bgClip='text'
                     >
-                        {address!.slice(0, 5)}'s collection
+                        {address!.slice(0, 6)}'s collection
                     </Heading>
                 </Box>
                 <Collection nftArray={nftArray}/>

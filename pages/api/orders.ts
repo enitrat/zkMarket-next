@@ -26,7 +26,7 @@ const getOrders = async (req: any, res: any) => {
         tokenBuy: parseInt(tokenId)
     }
     const orders = await db.collection("orders")
-        .find(filter,{projection : {_id:0}})
+        .find(filter,{})
         .limit(20)
         .toArray();
     res.status(200).json(orders);
@@ -49,11 +49,11 @@ export const addOrder = async (req: any, res: any) => {
 
 export const deleteOrder = async (req: any, res: any) => {
     let {db} = await connectToDatabase();
-    const {body} = req;
-    const {payload} = body;
-    console.log(payload);
+    const {query} = req;
+    const id = query._id
+    console.log(query);
     try {
-        await db.collection("orders").deleteOne(payload);
+        await db.collection("orders").deleteOne({_id: new ObjectId(id)});
         res.status(200).json({result: "success"});
     } catch (e) {
         console.log(e);
