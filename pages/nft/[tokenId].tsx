@@ -14,8 +14,14 @@ import {
 import {Box, Flex, Image, Input, Text, Button, Heading, Link, Grid} from "@chakra-ui/react";
 import {Table, Thead, Tbody, Tr, Th, Td, chakra} from '@chakra-ui/react'
 import {TriangleDownIcon, TriangleUpIcon} from '@chakra-ui/icons'
+
+// @ts-ignore
+import {NotificationContainer, NotificationManager} from 'react-notifications';
 // @ts-ignore
 import {useTable, useSortBy} from 'react-table';
+
+import 'react-notifications/lib/notifications.css';
+
 import {BigNumber, ethers} from "ethers";
 import axios, {AxiosRequestConfig} from "axios";
 import {utils} from "zksync";
@@ -40,12 +46,14 @@ const NftView = ({
     const [orders, setOrders] = useState<Array<storedOrder>>([]);
     const syncWallet = zkSyncConnection?.syncWallet;
     const syncProvider = zkSyncConnection?.syncProvider;
-    const [owner, setOwner] = useState<boolean>(false);
+    const [owner, setOwner] = useState<boolean>();
+    const [network, setNetwork] = useState<string>();
 
     useEffect(() => {
 
         const search = async () => {
             let network_name = await chainConnection();
+            setNetwork(network_name)
             if (network_name) {
                 const response = await fetchNFTInfo(parseInt(tokenId)) as any;
                 const orders = await fetchNFTOrders(tokenId) as Array<storedOrder>;
@@ -85,21 +93,20 @@ const NftView = ({
 
     useEffect(() => {
 
-        const checkOwner = async() => {
+        const checkOwner = async () => {
             const accountState = await zkSyncConnection?.syncWallet.getAccountState();
             console.log(accountState);
-            Object.values(accountState!.committed.nfts).forEach( (nft : NFT) =>{
-                if(nft.id===parseInt(tokenId)){
+            Object.values(accountState!.committed.nfts).forEach((nft: NFT) => {
+                if (nft.id === parseInt(tokenId)) {
                     setOwner(true);
                 }
-            } )
+            })
 
         }
-        if(zkSyncConnection) {
+        if (zkSyncConnection) {
             checkOwner();
         }
-    },[zkSyncConnection])
-
+    }, [zkSyncConnection])
 
 
     const handleSubmit = async (event: any) => {
@@ -117,6 +124,7 @@ const NftView = ({
             );
             if (response.data.result === "success") {
                 console.log("success")
+                NotificationManager.success("You will receive the NFT once the owner accepts your offer", 'Offer sent', 5000)
                 const orders = await fetchNFTOrders(tokenId);
                 setOrders(orders);
             } else {
@@ -126,8 +134,24 @@ const NftView = ({
     }
 
     const acceptOffer = async (order: Order) => {
-        const payload = await prepareSellOrder(order, syncWallet!);
+        const txHash = await prepareSellOrder(order, syncWallet!);
+        if (txHash) {
+            NotificationManager.success("Click here to open zkscan", 'Transaction sent', 5000, () => checkExplorer(network as string, txHash))
+        } else {
+            NotificationManager.error("There was an error with the offer", 'Error')
+
+        }
     }
+
+    const checkExplorer = async (network: string, txHash: string) => {
+        console.log(network);
+        if (network === "rinkeby") {
+            window.open(`https://rinkeby.zkscan.io/explorer/transactions/${txHash}`, "_blank")
+        } else {
+            window.open(`https://zkscan.io/explorer/transactions/${txHash}`, "_blank")
+        }
+    }
+
 
     return (
         <>
@@ -154,10 +178,33 @@ const NftView = ({
                         <Flex marginBottom={"10px"}>
                             <p>{nftInfo.metadata.description}</p>
                         </Flex>
-                        <p>Created by : <Link
+                        <p>Created by  <Link
                             href={`/address/${nftInfo.nft.creatorAddress}`}>{nftInfo.nft.creatorAddress.slice(0, 6)}</Link>
                         </p>
                         ID : {nftInfo.nft.id}
+                        <Flex marginTop="40px" justifyContent={"center"} flexDir={"column"}
+                              alignItems={"flex-start"}>
+
+                            {zkSyncConnection && !owner &&
+                            <>
+                                Make an offer in ETH
+                                <form onSubmit={handleSubmit}>
+                                    <Flex flexDir="column" alignItems={"center"}>
+                                        <Input maxWidth={"150px"}
+                                               type={"text"}
+                                               name={"ethPrice"}/>
+                                        <Button type={"submit"}>Submit</Button>
+                                    </Flex>
+                                </form>
+                            </>
+                            }
+                            {owner && <>You own this NFT</>}
+                            {!zkSyncConnection &&
+                            <>
+                                Connect your wallet to make an offer
+                            </>
+                            }
+                        </Flex>
                     </Flex>
                     <Flex
                         flexDir={"column"}
@@ -200,6 +247,7 @@ const NftView = ({
                                 return (
                                     <>
                                         <Button
+                                            marginBottom={"15px"}
                                             padding={"30px"}
                                             disabled={zkSyncConnection === undefined || !owner}
                                             onClick={() => acceptOffer(order) as any}>
@@ -221,29 +269,10 @@ const NftView = ({
 
 
                 </Flex>
-                <Flex justifyContent={"center"} flexDir={"column"} marginTop="10px" alignItems={"flex-end"}>
 
-                    {zkSyncConnection && !owner &&
-                    <>
-                        Make an offer in ETH
-                        <form onSubmit={handleSubmit}>
-                            <Flex flexDir="column" alignItems={"flex-end"}>
-                                <Input maxWidth={"150px"}
-                                       type={"text"}
-                                       name={"ethPrice"}/>
-                                <Button type={"submit"}>Submit</Button>
-                            </Flex>
-                        </form>
-                    </>
-                    }
-                    {!zkSyncConnection &&
-                    <>
-                        Connect to make an offer
-                    </>
-                    }
-                </Flex>
             </Box>
             }
+            <NotificationContainer/>
 
         </>
     );

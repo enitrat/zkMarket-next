@@ -134,7 +134,7 @@ export const prepareBuyOrder = async (nft: NFT, price: string, syncWallet: Walle
         const orderA = await syncWallet.getOrder(payload);
         console.log(orderA);
         return orderA;
-    }catch(err){
+    } catch (err) {
         console.log(err);
     }
 }
@@ -150,17 +150,24 @@ export const prepareSellOrder = async (order: Order, syncWallet: Wallet) => {
             [order.tokenBuy]: 1
         })
     };
-    console.log(payload);
-    const orderB = await syncWallet.getOrder(payload);
-    console.log(orderB);
-    const swap = await syncWallet.syncSwap({
-        orders: [order, orderB],
-        feeToken: 'ETH'
-    });
-    console.log("swap");
-    console.log(swap);
-    const receipt = await swap.awaitReceipt();
-    console.log(receipt);
+    try {
+        console.log(payload);
+        const orderB = await syncWallet.getOrder(payload);
+        console.log(orderB);
+        const swap = await syncWallet.syncSwap({
+            orders: [order, orderB],
+            feeToken: 'ETH'
+        });
+        console.log("swap");
+        console.log(swap);
+        const txHash = swap.txHash.replace("sync-tx:", "0x")
+        const receipt = await swap.awaitReceipt();
+        return txHash;
+    }
+    catch(err){
+        console.log(err)
+        return undefined;
+    }
 }
 
 

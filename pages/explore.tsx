@@ -83,7 +83,7 @@ export const Explore: NextPage = () => {
                                 <SearchIcon
                                     marginRight={"10px"}
                                 />
-                                <Input placeholder='TokenId id of address'
+                                <Input placeholder='NFT id or ethereum address'
                                        size={'sm'}
                                        borderRadius="xl"
                                        focusBorderColor={"rgba(127, 106, 255, 0.55)"}
@@ -105,7 +105,7 @@ export const Explore: NextPage = () => {
                                 width={"100px"}
                                 alignSelf={"center"}
                             >
-                                Submit
+                                Explore
                             </Button>
                         </Flex>
                     </form>

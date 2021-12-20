@@ -21,6 +21,7 @@
     "next": "12.0.7",
     "react": "17.0.2",
     "react-dom": "17.0.2",
+    "react-notifications": "^1.7.3",
     "react-table": "^7.7.0",
     "zksync": "^0.11.6"
   },
