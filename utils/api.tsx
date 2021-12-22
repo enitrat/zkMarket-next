@@ -103,7 +103,8 @@ export const fetchNFTInfo = async (tokenId: number) => {
         let content: string = nft.contentHash;
         content = content.replace("0x", "e30101701220");
         let ipfsHash: string = contentHash.decode(content);
-        let response: any = await axios.get(`http://ipfs.io/ipfs/${ipfsHash}`);
+        console.log(ipfsHash)
+        let response: any = await axios.get(`http://ipfs.io/ipfs/${ipfsHash}`,{timeout:5000});
         let metadata: Metadata = response.data;
         let fetchedNFT: FetchedNFT = {
             nft: nft,
@@ -112,6 +113,7 @@ export const fetchNFTInfo = async (tokenId: number) => {
         return fetchedNFT;
     } catch (error) {
         console.log(error);
+        return undefined;
     }
 }
 

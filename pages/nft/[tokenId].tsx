@@ -56,8 +56,10 @@ const NftView = ({
             setNetwork(network_name)
             if (network_name) {
                 const response = await fetchNFTInfo(parseInt(tokenId)) as any;
+                console.log(response);
                 const orders = await fetchNFTOrders(tokenId) as Array<storedOrder>;
                 setNftInfo(response);
+                console.log(response);
                 setOrders(orders);
             } else {
                 setError(true);
@@ -198,7 +200,7 @@ const NftView = ({
                                 </form>
                             </>
                             }
-                            {owner && <>You own this NFT</>}
+                            {zkSyncConnection && owner && <>You own this NFT</>}
                             {!zkSyncConnection &&
                             <>
                                 Connect your wallet to make an offer
@@ -272,6 +274,7 @@ const NftView = ({
 
             </Box>
             }
+            {!nftInfo && <> NFT doesn't exist or is not hosted on IPFS</>}
             <NotificationContainer/>
 
         </>
